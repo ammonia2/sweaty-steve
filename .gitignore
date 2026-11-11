@@ -1,0 +1,71 @@
+# Python
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Secrets and local config
+.env
+.env.*
+!.env.example
+
+# Editors and IDEs
+.vscode/
+.idea/
+.zed/
+*.code-workspace
+*.swp
+*.swo
+*~
+.#*
+\#*#
+
+# AI assistants
+.claude/
+CLAUDE.md
+CLAUDE.local.md
+.cursor/
+.cursorignore
+.cursorrules
+.aider*
+.codex/
+.copilot/
+.windsurf/
+.continue/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+.directory
+.Trash-*/
+
+# LaTeX (report/)
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+*.bbl
+*.blg
+
+# Scratch
+*.tmp
+*.bak
+*.orig

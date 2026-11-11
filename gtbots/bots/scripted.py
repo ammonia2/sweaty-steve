@@ -1,0 +1,1 @@
+"""Scripted opponents. Not implemented."""
