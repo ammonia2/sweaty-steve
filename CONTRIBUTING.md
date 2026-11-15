@@ -16,11 +16,11 @@ Each person owns code and the report section that goes with it.
 
 | Person | Code | Report section |
 |---|---|---|
-| TBD (game owner) | `gtbots/evaluator.py`, `gtbots/bots/nash.py`, `gtbots/scoring/`, `game/` | Problem statement, design, lookahead |
-| TBD (game owner) | `gtbots/env.py`, `gtbots/bots/ppo.py`, `gtbots/bots/scripted.py`, match runner | Repeated games |
-| TBD | `gtbots/solvers/` | Normal form, one snapshot solved by hand |
-| TBD | `gtbots/bots/bayesian.py` | Bayesian payoffs and equilibrium check |
-| TBD | `gtbots/tournament.py`, `gtbots/replicator.py`, results screen | Evolutionary; information sets, recall, mixed vs behavioral |
+| Abdullah (game owner) | `gtbots/env.py`, `gtbots/evaluator.py`, `gtbots/bots/nash.py`, `gtbots/scoring/`, `game/` | Problem statement, design, lookahead |
+| Saim (game owner) | `gtbots/bots/ppo.py`, `gtbots/bots/scripted.py`, match runner | Repeated games |
+| Shahmeer | `gtbots/solvers/` | Normal form, one snapshot solved by hand |
+| Hasaan | `gtbots/bots/bayesian.py` | Bayesian payoffs and equilibrium check |
+| Ali | `gtbots/tournament.py`, `gtbots/replicator.py`, results screen; runs the tournaments (14-core machine) | Evolutionary; information sets, recall, mixed vs behavioral |
 
 ## Interfaces (draft, to be fixed before work starts)
 

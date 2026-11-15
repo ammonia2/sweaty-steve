@@ -29,6 +29,61 @@ tests/
 report/sections/     one file per course topic, with the hand calculations
 ```
 
+## Game server
+
+The game server is **not an HTTP server**, so requests are not sent with a
+browser or `curl`. It reads binary commands from standard input and writes
+binary responses to standard output.
+
+Start it from the repository root with:
+
+```bash
+node game/envserver.cjs '{"numEnvs":1,"seed":1}'
+```
+
+The server first prints a JSON description of its protocol, observation size
+and available actions. It then accepts these single-byte commands:
+
+| Request | Meaning |
+|---|---|
+| `R` | Reset and start a new match |
+| `S` + action bytes | Play one turn |
+| `E` + binary data | Evaluate action pairs |
+| `Q` | Quit |
+
+For one environment, an `S` request contains one action byte for each player.
+For example, `S 0 0` means both players choose action `0`; valid actions are
+`0` through `11`.
+
+These requests must be sent as bytes by a client program rather than typed
+into the terminal. This small Node.js example starts the server, resets it,
+plays one turn, and quits:
+
+```js
+const { spawn } = require("node:child_process");
+
+const server = spawn("node", [
+  "game/envserver.cjs",
+  JSON.stringify({ numEnvs: 1, seed: 1 })
+]);
+
+server.stdout.on("data", (data) => {
+  console.log("Received", data.length, "bytes");
+});
+
+server.stderr.on("data", (data) => {
+  console.error(data.toString());
+});
+
+setTimeout(() => {
+  server.stdin.write(Buffer.from([0x52]));       // R: reset
+  server.stdin.write(Buffer.from([0x53, 0, 0])); // S: both choose action 0
+  server.stdin.write(Buffer.from([0x51]));       // Q: quit
+}, 100);
+```
+
+The Python wrapper is intended to automate this communication in `gtbots/env.py`.
+
 ## Setup
 
 ```bash
