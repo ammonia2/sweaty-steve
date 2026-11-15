@@ -1,0 +1,88 @@
+% References for the report. Each entry was checked against the publisher or
+% arXiv record (2026-11-15); `note` says what we cite it for.
+
+% --- Commitment length / action repetition (experiments/README.md) ---
+
+@article{mayne2000mpc,
+  author  = {Mayne, David Q. and Rawlings, James B. and Rao, Christopher V. and Scokaert, Pierre O. M.},
+  title   = {Constrained model predictive control: Stability and optimality},
+  journal = {Automatica},
+  volume  = {36},
+  number  = {6},
+  pages   = {789--814},
+  year    = {2000},
+  doi     = {10.1016/S0005-1098(99)00214-9},
+  note    = {Survey of MPC: receding horizon, plan ahead and re-plan every step.}
+}
+
+@article{mnih2015dqn,
+  author  = {Mnih, Volodymyr and Kavukcuoglu, Koray and Silver, David and Rusu, Andrei A. and Veness, Joel and Bellemare, Marc G. and Graves, Alex and Riedmiller, Martin and Fidjeland, Andreas K. and Ostrovski, Georg and others},
+  title   = {Human-level control through deep reinforcement learning},
+  journal = {Nature},
+  volume  = {518},
+  number  = {7540},
+  pages   = {529--533},
+  year    = {2015},
+  doi     = {10.1038/nature14236},
+  note    = {Frame skipping: the agent selects an action every kth frame (k = 4) and repeats it in between.}
+}
+
+@inproceedings{braylan2015frameskip,
+  author    = {Braylan, Alex and Hollenbeck, Mark and Meyerson, Elliot and Miikkulainen, Risto},
+  title     = {Frame Skip Is a Powerful Parameter for Learning to Play {Atari}},
+  booktitle = {AAAI-15 Workshop on Learning for General Competency in Video Games},
+  year      = {2015},
+  url       = {https://cdn.aaai.org/ocs/ws/ws0098/10156-45978-1-PB.pdf},
+  note      = {Frame skip strongly affects results; large skips were essential in some games.}
+}
+
+@inproceedings{lakshminarayanan2017dar,
+  author    = {Lakshminarayanan, Aravind S. and Sharma, Sahil and Ravindran, Balaraman},
+  title     = {Dynamic Action Repetition for Deep Reinforcement Learning},
+  booktitle = {Proceedings of the AAAI Conference on Artificial Intelligence},
+  volume    = {31},
+  number    = {1},
+  pages     = {2133--2139},
+  year      = {2017},
+  doi       = {10.1609/aaai.v31i1.10918},
+  note      = {Makes the repetition rate learnable instead of a fixed hyperparameter.}
+}
+
+@inproceedings{sharma2017figar,
+  author    = {Sharma, Sahil and Lakshminarayanan, Aravind S. and Ravindran, Balaraman},
+  title     = {Learning to Repeat: Fine Grained Action Repetition for Deep Reinforcement Learning},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2017},
+  eprint    = {1702.06054},
+  archivePrefix = {arXiv},
+  note      = {FiGAR: the policy picks an action and how long to repeat it.}
+}
+
+@misc{zhao2023act,
+  author        = {Zhao, Tony Z. and Kumar, Vikash and Levine, Sergey and Finn, Chelsea},
+  title         = {Learning Fine-Grained Bimanual Manipulation with Low-Cost Hardware},
+  year          = {2023},
+  eprint        = {2304.13705},
+  archivePrefix = {arXiv},
+  note          = {ACT: executes action chunks to reduce compounding errors; temporal ensembling to avoid jerky motion.}
+}
+
+@misc{berner2019dota,
+  author        = {Berner, Christopher and others},
+  title         = {{Dota 2} with Large Scale Deep Reinforcement Learning},
+  year          = {2019},
+  eprint        = {1912.06680},
+  archivePrefix = {arXiv},
+  note          = {OpenAI Five acts on every 4th frame; ~217 ms reaction time vs ~250 ms typical human visual reaction time.}
+}
+
+@article{vinyals2019alphastar,
+  author  = {Vinyals, Oriol and Babuschkin, Igor and Czarnecki, Wojciech M. and others},
+  title   = {Grandmaster level in {StarCraft II} using multi-agent reinforcement learning},
+  journal = {Nature},
+  volume  = {575},
+  pages   = {350--354},
+  year    = {2019},
+  doi     = {10.1038/s41586-019-1724-z},
+  note    = {Action rate capped (22 non-duplicate actions per 5 s), ~200 ms delay, to play at human-like speed.}
+}

@@ -2,7 +2,7 @@
 
 ## Rules
 
-- One branch per task: `<name>/<task>`, for example `sara/lp-solver`.
+- One branch per task: `<name>/<task>`, for example `saim/lp-solver`.
 - Merge to `main` by pull request with one reviewer. No direct pushes to `main`.
 - Update the contributions log below in the same pull request as the work.
 - Every experiment takes its seeds from a config, and writes its output to
@@ -20,7 +20,7 @@ Each person owns code and the report section that goes with it.
 | Saim (game owner) | `gtbots/bots/ppo.py`, `gtbots/bots/scripted.py`, match runner | Repeated games |
 | Shahmeer | `gtbots/solvers/` | Normal form, one snapshot solved by hand |
 | Hasaan | `gtbots/bots/bayesian.py` | Bayesian payoffs and equilibrium check |
-| Ali | `gtbots/tournament.py`, `gtbots/replicator.py`, results screen; runs the tournaments (14-core machine) | Evolutionary; information sets, recall, mixed vs behavioral |
+| Ali | `gtbots/tournament.py`, `gtbots/replicator.py`, results screen; runs the tournaments (14-core machine), including the commitment-length experiment in `experiments/README.md` | Evolutionary; information sets, recall, mixed vs behavioral |
 
 ## Interfaces
 
