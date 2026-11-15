@@ -22,12 +22,20 @@ Each person owns code and the report section that goes with it.
 | Hasaan | `gtbots/bots/bayesian.py` | Bayesian payoffs and equilibrium check |
 | Ali | `gtbots/tournament.py`, `gtbots/replicator.py`, results screen; runs the tournaments (14-core machine) | Evolutionary; information sets, recall, mixed vs behavioral |
 
-## Interfaces (draft, to be fixed before work starts)
+## Interfaces
 
-- A bot: `act(state, obs) -> action`, with `action` an integer 0..11.
-- The evaluator: `payoff_matrix(state) -> 12x12 array`, entry `[i, j]` is the
-  score for player 1 when player 1 plays `i` and player 2 plays `j`.
-  Zero-sum: player 2's score is the negative.
+- A bot (`gtbots/bots/base.py`): `act(seat, obs) -> action`, with `action` an
+  integer 0..11 (`env.encode(move, jump, kick)`). `obs` is the bot's own
+  198-float view; `seat` (`env.Seat`) is its match and end, which only the
+  Nash bot needs (`seat.lookahead(ticks, follow)`).
+- The evaluator (`gtbots/evaluator.py`): `payoff_matrix(seat, score, ticks, follow) -> 12x12 array`,
+  with `score` from `gtbots/scoring/` (`HeuristicScore` or `CriticScore`), entry `[i, j]` is the
+  score for **the deciding player** when they play `i` and the opponent plays
+  `j`. Zero-sum: the opponent's score is the negative. `seat.lookahead`
+  already returns everything in that orientation, so no bot has to care
+  which end it is on.
+- Reading an observation: `env.Fields(env.layout)`, e.g. `f.ball(obs, "x")`.
+  Never hard-code an index.
 
 ## Contributions log
 

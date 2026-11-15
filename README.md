@@ -86,12 +86,47 @@ The Python wrapper is intended to automate this communication in `gtbots/env.py`
 
 ## Setup
 
+The Python side is managed with [uv](https://docs.astral.sh/uv/). It installs
+the right Python (3.12, from `.python-version`) and the exact package versions
+in `uv.lock`, so everyone runs the same thing.
+
+1. Install uv, once per machine:
+
+   ```bash
+   # Linux / macOS
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   # Windows (PowerShell)
+   powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+   ```
+
+2. From the repository root, create `.venv/` and install everything:
+
+   ```bash
+   uv sync
+   ```
+
+3. Run things through uv; it uses `.venv/` without activating anything:
+
+   ```bash
+   uv run python experiments/some_script.py
+   uv run pytest
+   ```
+
+   Or activate it yourself: `source .venv/bin/activate` (Linux / macOS),
+   `.venv\Scripts\activate` (Windows).
+
+Adding a package: `uv add scipy` (or `uv add --dev <name>` for tools only
+used in development). It updates `pyproject.toml` and `uv.lock`; commit both
+in the same pull request as the code that needs it. Don't `pip install` into
+`.venv/`, since `uv sync` removes anything not in the lock file.
+
+Running matches also needs [Node](https://nodejs.org/) for `game/envserver.cjs`
+(tested on Node 26; if an older one fails, update Node first). Check that the game starts:
+
 ```bash
-python -m venv .venv
-.venv/bin/pip install -r requirements.txt
+uv run python -c "from gtbots.env import GameEnv; GameEnv(num_envs=1, num_procs=1).close(); print('ok')"
 ```
 
-Running matches also needs Node and `game/envserver.cjs`. Solver, Bayesian and
-replicator work can start from `fixtures/` without either.
+Solver, Bayesian and replicator work can start from `fixtures/` without Node.
 
 See `CONTRIBUTING.md` for who owns what and how to submit work.
