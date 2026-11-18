@@ -41,3 +41,4 @@ Each person owns code and the report section that goes with it.
 
 | Date | Person | What | Pull request |
 |---|---|---|---|
+| 2026-11-18 | Ali | `replicator.py`: replicator dynamics for N types (euler and discrete rules) with share plot, plus tests | (PR link) |
