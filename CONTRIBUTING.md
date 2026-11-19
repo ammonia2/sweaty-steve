@@ -41,3 +41,4 @@ Each person owns code and the report section that goes with it.
 
 | Date | Person | What | Pull request |
 |---|---|---|---|
+| 2026-11-18 | Ali | `tournament.py`: round-robin between bots (both ends, parallel workers, seeded) -> mean goal-difference payoff matrix and CSV output, plus tests | (PR link) |
