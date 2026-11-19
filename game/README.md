@@ -9,13 +9,13 @@ these files by hand.
 |---|---|
 | `envserver.cjs` | The game simulation as one Node script. `gtbots/env.py` starts it and talks to it. |
 | `VERSION` | The game commit `envserver.cjs` was built from. |
-| `policies/stage1-open.bin` | The trained PPO bot's actor (picks actions). |
-| `policies/stage1-open.critic.bin` | The same run's critic (rates a position), for scoring payoff cells. |
+| `policies/stage2.bin` | The trained PPO bot's actor (picks actions). |
+| `policies/stage2.critic.bin` | The same run's critic (rates a position), for scoring payoff cells. |
 
 ## The server
 
 Start it with Node and a JSON config as its one argument, for example
-`node game/envserver.cjs '{"numEnvs": 4, "seed": 1, "policy": "game/policies/stage1-open.bin"}'`.
+`node game/envserver.cjs '{"numEnvs": 4, "seed": 1, "policy": "game/policies/stage2.bin"}'`.
 It prints one JSON line describing itself (protocol 2, observation size,
 actions, the observation layout), then talks binary over stdin/stdout. The
 full byte layout is in the comment at the top of `envserver.cjs`.

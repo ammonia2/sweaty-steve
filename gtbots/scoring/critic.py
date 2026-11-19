@@ -18,7 +18,7 @@ import numpy as np
 
 from gtbots.env import ROOT
 
-DEFAULT = ROOT / "game" / "policies" / "stage1-open.critic.bin"
+DEFAULT = ROOT / "game" / "policies" / "stage2.critic.bin"
 
 
 class CriticScore:
