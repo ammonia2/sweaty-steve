@@ -31,7 +31,7 @@ and would punish it).
 
 For each k in {6, 15}, and for each scorer (heuristic, critic):
 
-- Nash bot vs `stage1-open` (PPO), Nash on each end for half the matches.
+- Nash bot vs `stage2` (PPO), Nash on each end for half the matches.
 - Nash bot vs the scripted baseline.
 - Whole first-to-7 matches. Start with 20 per pairing to check the timing,
   then as many as the machine allows (aim for 100+).
