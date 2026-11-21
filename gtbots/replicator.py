@@ -8,11 +8,18 @@ and the mean fitness is ``f_bar = x . f``.
 Two update rules are offered:
 
 * ``"euler"``: ``x_i += dt * x_i * (f_i - f_bar)``, the continuous replicator
-  equation, integrated with step ``dt``.
+  equation, integrated with step ``dt``. ``dt`` is used only by this rule.
 * ``"discrete"``: ``x_i <- x_i * (f_i + c) / (f_bar + c)``, the discrete-time
   replicator; the constant ``c`` shifts the payoffs so every fitness is
-  positive (goal differences can be negative). Both rules keep the shares on
-  the simplex and agree in the limit of small steps.
+  positive (goal differences can be negative). It has no step size, so it
+  ignores ``dt``.
+
+Both rules keep the shares on the simplex.
+
+Euler is only an approximation: on a cycle (rock-paper-scissors) the exact
+shares circle forever, but Euler spirals slowly outward, and a larger ``dt``
+spirals faster. The default ``dt`` is small for that reason; the default
+``steps`` is large enough that ``steps * dt`` still covers 100 time units.
 """
 
 from __future__ import annotations
@@ -22,7 +29,7 @@ from pathlib import Path
 import numpy as np
 
 
-def step(A, x, dt: float = 0.1, rule: str = "euler") -> np.ndarray:
+def step(A, x, dt: float = 0.01, rule: str = "euler") -> np.ndarray:
     """One replicator update of the share vector ``x`` under payoffs ``A``."""
     A = np.asarray(A, dtype=float)
     x = np.asarray(x, dtype=float)
@@ -39,7 +46,7 @@ def step(A, x, dt: float = 0.1, rule: str = "euler") -> np.ndarray:
     return new / new.sum()  # absorbs rounding drift
 
 
-def simulate(A, x0=None, steps: int = 1000, dt: float = 0.1,
+def simulate(A, x0=None, steps: int = 10000, dt: float = 0.01,
              rule: str = "euler") -> np.ndarray:
     """Shares over time: array of shape ``(steps + 1, N)``, row 0 is ``x0``.
 

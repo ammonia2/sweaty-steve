@@ -43,3 +43,13 @@ def test_plot_saves(tmp_path):
     out = tmp_path / "shares.png"
     replicator.plot(replicator.simulate(RPS, [0.6, 0.3, 0.1]), ["a", "b", "c"], out)
     assert out.exists()
+
+
+def test_rps_cycle_does_not_drift_at_default_dt():
+    # The exact dynamics circle the uniform mix forever; Euler spirals out,
+    # so a coarse dt would show one type taking over.
+    x0 = [0.4, 0.35, 0.25]
+    traj = replicator.simulate(RPS, x0)
+    assert traj.max() < 0.6 and traj.min() > 0.1
+    coarse = replicator.simulate(RPS, x0, steps=1000, dt=0.1)
+    assert coarse.max() > traj.max()  # the larger step drifts further
