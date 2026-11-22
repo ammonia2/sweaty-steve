@@ -52,7 +52,8 @@ class NashBot:
                      commit=3 -> same buttons for 6 ticks  (0.2 s)
                      commit=7 -> same buttons for 14 ticks (0.47 s)
                      commit=8 -> same buttons for 16 ticks (0.53 s)
-                 15 ticks is not possible (it would be 7.5); use 7 or 8.
+                 15 ticks is not possible (it would be 7.5).
+                 The experiment uses commit=3 and commit=7 (6 and 14 ticks).
         seed:    for sampling from the mix, so a match is reproducible
         """
         if commit < 1:
