@@ -31,14 +31,18 @@ CONFIG = {
     "out": ROOT / "results",
 }
 
-# ball_x, ball_vx, pair_x, ball_lead, pair_vx
+# ball_x, ball_vx, pair_x, pair_vx. The first round of this experiment also had
+# a `ball_lead` term (2*ball.x - me.x - foe.x); it is ball_x and pair_x in
+# disguise, so each of those vectors is rewritten exactly as
+# ball_x + 2*lead, pair_x - lead (the scores are identical), so the committed
+# results/heuristic_tuning.csv still describes these vectors.
 CANDIDATES = {
-    "start": dict(ball_x=1.5, ball_vx=1.0, pair_x=0.4, ball_lead=0.6, pair_vx=0.2),
-    "ball-only": dict(ball_x=1.5, ball_vx=1.0, pair_x=0.0, ball_lead=0.0, pair_vx=0.0),
-    "ball-heavy": dict(ball_x=2.0, ball_vx=1.5, pair_x=0.0, ball_lead=0.0, pair_vx=0.0),
-    "players": dict(ball_x=1.0, ball_vx=0.5, pair_x=1.0, ball_lead=1.2, pair_vx=0.4),
-    "lead": dict(ball_x=1.0, ball_vx=0.8, pair_x=0.3, ball_lead=1.5, pair_vx=0.2),
-    "defensive": dict(ball_x=1.2, ball_vx=0.8, pair_x=-0.5, ball_lead=0.8, pair_vx=-0.2),
+    "start": dict(ball_x=2.7, ball_vx=1.0, pair_x=-0.2, pair_vx=0.2),
+    "ball-only": dict(ball_x=1.5, ball_vx=1.0, pair_x=0.0, pair_vx=0.0),
+    "ball-heavy": dict(ball_x=2.0, ball_vx=1.5, pair_x=0.0, pair_vx=0.0),
+    "players": dict(ball_x=3.4, ball_vx=0.5, pair_x=-0.2, pair_vx=0.4),
+    "lead": dict(ball_x=4.0, ball_vx=0.8, pair_x=-1.2, pair_vx=0.2),
+    "defensive": dict(ball_x=2.8, ball_vx=0.8, pair_x=-1.3, pair_vx=-0.2),
 }
 
 

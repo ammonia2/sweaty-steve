@@ -14,8 +14,27 @@ candidate by mean goal difference. The seeds, look-ahead, commitment and
 number of matches are in `CONFIG` at the top of the script. Output goes to
 `results/heuristic_tuning.csv` and `results/heuristic_best.json`; each
 candidate also writes its match CSV, replays and the Nash bot's per-match log
-under `results/tune_<name>/`. First-to-1 is a cheap proxy for the report's
-first-to-7 matches; the winning weights should be re-checked at target 7.
+(`results/logs/`, not committed).
+
+**Result so far (pilot, 4 matches per candidate).** `start` and `lead` both
+won 4-0, `defensive` 3-1, `players` 2-2, and both ball-only vectors lost 0-4.
+`start` was kept (first in the list) and is `WEIGHTS` in
+`gtbots/scoring/heuristic.py`. Read it as a pilot, not a tuned optimum:
+
+- 4 matches is too few. The 95% interval for 4/4 is about 0.40-1.00, which
+  overlaps 0/4's.
+- First-to-1 is a cheap stand-in for the report's first-to-7.
+- The comparison is confounded. Every vector with player terms also has a
+  heavier `ball_x` (2.7-4.0) than the ball-only ones (1.5-2.0), so the pilot
+  cannot say whether the player terms or the heavier `ball_x` made the
+  difference.
+- The pilot ran before the runner gave each bot its own seed (the Nash bot's
+  seed was the match seed `s`; it is now `2s`), so a rerun samples
+  differently and will not repeat these exact matches.
+
+**Next run:** `matches` 16 or more, and add a control candidate with
+`start`'s ball weights and the player terms off
+(`ball_x=2.7, ball_vx=1.0, pair_x=0, pair_vx=0`).
 
 ## Commitment length: how long the Nash bot holds an action
 

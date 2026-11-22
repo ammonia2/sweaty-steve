@@ -166,8 +166,11 @@ def play_matches(
         before = {p.name for p in replay_dir.glob("*.json")} if replay_dir else set()
 
         with GameEnv(num_envs=1, num_procs=1, seed=s, **mcfg) as env:
-            first, second = (make_a, make_b) if a_on_p1 else (make_b, make_a)
-            bots = (first(env.layout, s), second(env.layout, s))
+            # Each bot gets its own seed, tied to the bot rather than the end,
+            # so two copies of a sampling bot (Nash v Nash) never share a
+            # random stream.
+            bot_a_new, bot_b_new = make_a(env.layout, 2 * s), make_b(env.layout, 2 * s + 1)
+            bots = (bot_a_new, bot_b_new) if a_on_p1 else (bot_b_new, bot_a_new)
             r = play_match(env, bots[0], bots[1], target, max_decisions)
             bot_a = bots[0] if a_on_p1 else bots[1]
             bot_b = bots[1] if a_on_p1 else bots[0]

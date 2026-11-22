@@ -57,7 +57,6 @@ desktop.ini
 # LaTeX (report/)
 *.aux
 *.log
-!results/**/*_bot.log
 *.out
 *.toc
 *.synctex.gz
@@ -66,8 +65,10 @@ desktop.ini
 *.bbl
 *.blg
 
-# Generated match artifacts (curated tuning tables, bot logs and replays are kept)
+# Generated match artifacts. The tuning tables and the replays (a few hundred
+# bytes each) are kept; the per-match bot logs are rebuilt by the experiment.
 results/tmp/
+results/logs/
 results/replays/*/
 results/tune_*_matches.csv
 results/tune_*_summary.csv

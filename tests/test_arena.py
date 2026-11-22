@@ -101,3 +101,20 @@ def test_play_matches_saves_replays_logs_and_csv(tmp_path):
 def test_log_bot_must_be_a_or_b():
     with pytest.raises(ValueError):
         play_matches(make_runner, make_idle, matches=1, log_bot="c")
+
+
+def test_each_bot_gets_its_own_seed():
+    seen = {"a": [], "b": []}
+
+    def make_a(layout, seed):
+        seen["a"].append(seed)
+        return Const(8)
+
+    def make_b(layout, seed):
+        seen["b"].append(seed)
+        return Const(0)
+
+    play_matches(make_a, make_b, matches=2, seed=4, target=1, max_decisions=3000,
+                 env_config={"powerUps": False})
+    assert all(sa != sb for sa, sb in zip(seen["a"], seen["b"]))
+    assert len(set(seen["a"])) == 2

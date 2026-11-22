@@ -45,8 +45,7 @@ def test_player_terms_change_the_score():
     score = HeuristicScore(LAYOUT)
     assert score(ahead, mirrored(ahead)) != score(base, mirrored(base))
 
-    old = HeuristicScore(LAYOUT, {"ball_x": 1.5, "ball_vx": 1.0, "pair_x": 0.0,
-                                  "ball_lead": 0.0, "pair_vx": 0.0})
+    old = HeuristicScore(LAYOUT, {"ball_x": 1.5, "ball_vx": 1.0, "pair_x": 0.0, "pair_vx": 0.0})
     assert np.allclose(old(ahead, mirrored(ahead)), old(base, mirrored(base)))
 
 
