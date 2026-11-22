@@ -26,13 +26,17 @@ SEED = 7
 SNAPSHOTS = (10, 20, 30)  # decisions into the match
 TICKS = 30
 FOLLOW = "hold"
+# The report's section 3 shows the first, ball-only heuristic. It is pinned
+# here so the fixtures and the report's numbers do not move when the tuned
+# weights in gtbots/scoring/heuristic.py change.
+BALL_ONLY = {"ball_x": 1.5, "ball_vx": 1.0, "pair_x": 0.0, "pair_vx": 0.0}
 
 
 def main() -> None:
     version = (ROOT / "game" / "VERSION").read_text().strip()
     with GameEnv(num_envs=1, num_procs=1, seed=SEED, powerUps=False) as env:
         f = Fields(env.layout)
-        heuristic, critic = HeuristicScore(env.layout), CriticScore()
+        heuristic, critic = HeuristicScore(env.layout, BALL_ONLY), CriticScore()
         seat = Seat(env, 0, 0)
         moves = np.array([[encode(FORWARD, 0, 0), encode(STAND, 0, 0)]])
         obs = env.reset()
