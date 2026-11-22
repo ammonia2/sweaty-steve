@@ -57,7 +57,7 @@ desktop.ini
 # LaTeX (report/)
 *.aux
 *.log
-!results/**/bot.log
+!results/**/*_bot.log
 *.out
 *.toc
 *.synctex.gz
@@ -65,6 +65,12 @@ desktop.ini
 *.fdb_latexmk
 *.bbl
 *.blg
+
+# Generated match artifacts (curated tuning tables, bot logs and replays are kept)
+results/tmp/
+results/replays/*/
+results/tune_*_matches.csv
+results/tune_*_summary.csv
 
 # Scratch
 *.tmp

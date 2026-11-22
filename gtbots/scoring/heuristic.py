@@ -29,8 +29,9 @@ import numpy as np
 
 from gtbots.env import Fields
 
-# Starting weights. `experiments/tune_heuristic.py` plays matches against the
-# scripted baseline to choose the final values.
+# Selected by `experiments/tune_heuristic.py`: the starting values tied for the
+# best goal difference against the scripted baseline and were kept. The chosen
+# vector is also saved in results/heuristic_best.json.
 WEIGHTS = {
     "ball_x": 1.5,
     "ball_vx": 1.0,
