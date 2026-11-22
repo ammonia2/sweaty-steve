@@ -41,4 +41,5 @@ Each person owns code and the report section that goes with it.
 
 | Date | Person | What | Pull request |
 |---|---|---|---|
-| 2026-11-18 | Ali | `tournament.py`: round-robin between bots (both ends, parallel workers, seeded) -> mean goal-difference payoff matrix and CSV output, plus tests | (PR link) |
+| 2026-11-18 | Ali | `replicator.py`: replicator dynamics for N types (euler and discrete rules) with share plot, plus tests | https://github.com/ammonia2/sweaty-steve/pull/1 |
+| 2026-11-18 | Ali | `tournament.py`: round-robin between bots (both ends, parallel workers, seeded) -> mean goal-difference payoff matrix and CSV output, plus tests | https://github.com/ammonia2/sweaty-steve/pull/2 |
