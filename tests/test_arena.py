@@ -1,0 +1,55 @@
+"""Checks for the single-match runner. Needs Node: uv run pytest tests/test_arena.py"""
+from __future__ import annotations
+
+import numpy as np
+import pytest
+
+from gtbots.arena import play_match
+from gtbots.env import GameEnv
+
+
+class Const:
+    def __init__(self, action):
+        self.action = action
+        self.resets = 0
+        self.seen = []
+
+    def reset(self):
+        self.resets += 1
+        self.seen = []
+
+    def observe(self, opponent_action):
+        self.seen.append(opponent_action)
+
+    def act(self, seat, obs):
+        return self.action
+
+
+def test_play_match_records_one_match():
+    a, b = Const(8), Const(8)
+    with GameEnv(num_envs=1, num_procs=1, seed=3, powerUps=False) as env:
+        r = play_match(env, a, b, target=1, max_decisions=3000)
+    assert r["ended_by"] == "target"
+    assert r["winner"] == ("p1" if r["goals1"] > r["goals2"] else "p2")
+    assert max(r["goals1"], r["goals2"]) >= 1
+    assert r["ticks"] == r["decisions"] * 2
+    assert r["seconds1"] >= 0 and r["seconds2"] >= 0
+    assert a.resets == b.resets == 1
+
+
+def test_observe_gets_the_opponents_previous_action():
+    a, b = Const(8), Const(0)
+    with GameEnv(num_envs=1, num_procs=1, seed=5, powerUps=False) as env:
+        play_match(env, a, b, target=7, max_decisions=2)
+    assert a.seen[0] is None and b.seen[0] is None
+    assert a.seen[1] == 0 and b.seen[1] == 8
+    assert a.seen[-1] == 0 and b.seen[-1] == 8
+
+
+def test_time_cutoff_and_draw():
+    a, b = Const(0), Const(0)
+    with GameEnv(num_envs=1, num_procs=1, seed=7, powerUps=False, maxEpisodeTicks=10) as env:
+        r = play_match(env, a, b, target=7, max_decisions=100)
+    assert r["ended_by"] == "time"
+    assert r["winner"] == "draw"
+    assert r["decisions"] == 5  # 10 ticks / 2 per decision
