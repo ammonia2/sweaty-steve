@@ -1,6 +1,8 @@
 """Checks for the single-match runner. Needs Node: uv run pytest tests/test_arena.py"""
 from __future__ import annotations
 
+import json
+
 import numpy as np
 import pytest
 
@@ -17,11 +19,13 @@ class Const:
     def reset(self):
         self.resets += 1
         self.seen = []
+        self.log = []
 
     def observe(self, opponent_action):
         self.seen.append(opponent_action)
 
     def act(self, seat, obs):
+        self.log.append({"decision": len(self.log), "action": self.action})
         return self.action
 
 
@@ -81,3 +85,19 @@ def test_play_matches_alternates_ends_and_is_reproducible():
 def test_play_matches_rejects_zero_matches():
     with pytest.raises(ValueError):
         play_matches(make_runner, make_idle, matches=0)
+
+
+def test_play_matches_saves_replays_logs_and_csv(tmp_path):
+    _, recs = play_matches(
+        make_runner, make_idle, matches=2, seed=9, target=1, max_decisions=3000,
+        env_config={"powerUps": False}, out=tmp_path, tag="t",
+    )
+    assert (tmp_path / "t_matches.csv").exists() and (tmp_path / "t_summary.csv").exists()
+    assert all(r["replay"] and (tmp_path / r["replay"]).exists() for r in recs)
+    assert all(r["bot_log"] and (tmp_path / r["bot_log"]).exists() for r in recs)
+    assert json.loads((tmp_path / recs[0]["bot_log"]).read_text())[0]["decision"] == 0
+
+
+def test_log_bot_must_be_a_or_b():
+    with pytest.raises(ValueError):
+        play_matches(make_runner, make_idle, matches=1, log_bot="c")

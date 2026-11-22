@@ -57,6 +57,7 @@ desktop.ini
 # LaTeX (report/)
 *.aux
 *.log
+!results/**/bot.log
 *.out
 *.toc
 *.synctex.gz
