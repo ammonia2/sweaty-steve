@@ -8,7 +8,7 @@ At every decision the Nash bot builds a 12×12 zero-sum game from the current
 match state (every pair of actions played forward and scored), solves it for
 the mixed equilibrium and samples its action from that mix.
 
-**Status:** the game is in (`game/`: the env server, with the 144-cell look-ahead the Nash bot needs, and the PPO actor and critic). The Python package is still a skeleton.
+**Status:** the game is in (`game/`: the env server, with the 144-cell look-ahead the Nash bot needs, and the PPO actor and critic). The Python package has the Nash, PPO and scripted bots and a seeded match runner (`gtbots/arena.py`) that saves replays, bot logs and result CSVs.
 
 ## Layout
 

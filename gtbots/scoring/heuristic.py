@@ -1,21 +1,27 @@
-"""Hand-written position score.
+"""Hand-written position score, with ball and player terms.
 
-A starting point to tune, not a finished design. It rates a position by where
-the ball is and where it is going, both seen from my side:
+A position is rated from my own (mirrored) view. Mirroring swaps the two
+players: mine's `me` is theirs' `foe`, and every x / vx negates. So a lone
+player field does NOT flip sign under a view swap; only these combinations do:
 
-    ball far towards their goal, moving that way   -> good for me
-    ball near my goal, moving towards it           -> bad for me
+    ball_x    ball.x                       (their view: -ball.x)
+    ball_vx   ball.vx                      (their view: -ball.vx)
+    pair_x    me.x + foe.x                 (their view: -(me.x + foe.x))
+    ball_lead 2*ball.x - me.x - foe.x      ball ahead of the two players
+    pair_vx   me.vx + foe.vx               both players' forward momentum
 
-    score = 0.5 * tanh(BALL_X * ball.x + BALL_VX * ball.vx)
+y positions do not flip under a mirror, so no y term can appear here. With
+only sign-flipping terms,
 
-ball.x runs -1 (my goal's end) .. +1 (theirs); ball.vx > 0 is towards their
-goal (see the units in env.py). The weights are a first guess.
+    score(theirs, mine) == - score(mine, theirs)
 
-The 0.5 keeps every score inside -0.5..0.5, so any cell where a goal is
-actually scored (worth +-1 in the evaluator) always outranks it.
+exactly: the score is zero-sum on its own, like the critic's difference of
+two values.
 
-Every term is something that flips sign when the pitch is mirrored, so the
-score is zero-sum on its own: from their side it is exactly the negative.
+    score = 0.5 * tanh(sum(weight * term))
+
+The 0.5 keeps every opinion strictly inside -0.5..0.5, so a real goal
+(worth +-1 in the evaluator) always outranks it.
 """
 from __future__ import annotations
 
@@ -23,17 +29,38 @@ import numpy as np
 
 from gtbots.env import Fields
 
-BALL_X = 1.5
-BALL_VX = 1.0
+# Selected by `experiments/tune_heuristic.py`: the starting values tied for the
+# best goal difference against the scripted baseline and were kept. The chosen
+# vector is also saved in results/heuristic_best.json.
+WEIGHTS = {
+    "ball_x": 1.5,
+    "ball_vx": 1.0,
+    "pair_x": 0.4,
+    "ball_lead": 0.6,
+    "pair_vx": 0.2,
+}
 
 
 class HeuristicScore:
     """score(mine, theirs) -> how good the position is for me, -0.5..0.5."""
 
-    def __init__(self, layout: dict):
+    def __init__(self, layout: dict, weights: dict | None = None):
         self.f = Fields(layout)
+        self.weights = dict(WEIGHTS)
+        if weights:
+            unknown = set(weights) - set(self.weights)
+            if unknown:
+                raise ValueError(f"unknown heuristic terms: {sorted(unknown)}")
+            self.weights.update(weights)
 
     def __call__(self, mine: np.ndarray, theirs: np.ndarray) -> np.ndarray:
-        x = self.f.ball(mine, "x")
-        vx = self.f.ball(mine, "vx")
-        return 0.5 * np.tanh(BALL_X * x + BALL_VX * vx)
+        f, w = self.f, self.weights
+        mx, fx = f.me(mine, "x"), f.foe(mine, "x")
+        z = (
+            w["ball_x"] * f.ball(mine, "x")
+            + w["ball_vx"] * f.ball(mine, "vx")
+            + w["pair_x"] * (mx + fx)
+            + w["ball_lead"] * (2 * f.ball(mine, "x") - mx - fx)
+            + w["pair_vx"] * (f.me(mine, "vx") + f.foe(mine, "vx"))
+        )
+        return 0.5 * np.tanh(z)

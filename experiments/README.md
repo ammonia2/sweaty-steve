@@ -3,6 +3,20 @@
 One script per result in the report. Every script takes its seeds from a
 config and writes to `results/`, so any figure can be rebuilt.
 
+## Heuristic tuning: player terms
+
+**Owner:** Saim. **Needs first:** the match runner (`gtbots/arena.py`).
+
+Run `uv run python -m experiments.tune_heuristic`. For each candidate weight
+vector it plays first-to-1 matches of Nash + heuristic against the scripted
+baseline, with the Nash bot on each end for half the matches, and scores the
+candidate by mean goal difference. The seeds, look-ahead, commitment and
+number of matches are in `CONFIG` at the top of the script. Output goes to
+`results/heuristic_tuning.csv` and `results/heuristic_best.json`; each
+candidate also writes its match CSV, replays and the Nash bot's per-match log
+under `results/tune_<name>/`. First-to-1 is a cheap proxy for the report's
+first-to-7 matches; the winning weights should be re-checked at target 7.
+
 ## Commitment length: how long the Nash bot holds an action
 
 **Owner:** Ali (runs on the 14-core machine). **Needs first:** `nash.py` with

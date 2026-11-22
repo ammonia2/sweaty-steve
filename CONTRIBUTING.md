@@ -43,3 +43,7 @@ Each person owns code and the report section that goes with it.
 |---|---|---|---|
 | 2026-11-18 | Ali | `replicator.py`: replicator dynamics for N types (euler and discrete rules) with share plot, plus tests | https://github.com/ammonia2/sweaty-steve/pull/1 |
 | 2026-11-18 | Ali | `tournament.py`: round-robin between bots (both ends, parallel workers, seeded) -> mean goal-difference payoff matrix and CSV output, plus tests | https://github.com/ammonia2/sweaty-steve/pull/2 |
+| 2026-11-22 | Saim | `bots/ppo.py`: exported actor loader, argmax and softmax probabilities, plus tests | branch `saim/ppo-bot` |
+| 2026-11-22 | Saim | `bots/scripted.py`: baseline port, rusher and camper; optional `observe(opponent_action)` hook in `bots/base.py` | branch `saim/ppo-bot` |
+| 2026-11-22 | Saim | `arena.py`: first-to-7 match runner with one seed/match, alternating ends, replays, per-match Nash logs and CSV results, plus tests | branch `saim/ppo-bot` |
+| 2026-11-22 | Saim | heuristic player terms and tuning experiment; repeated-games report section | branch `saim/ppo-bot` |

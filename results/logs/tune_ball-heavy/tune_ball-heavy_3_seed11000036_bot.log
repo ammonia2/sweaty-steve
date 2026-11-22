@@ -1,0 +1,128 @@
+[
+  {
+    "value": -0.0,
+    "support": 1,
+    "distinct_rows": 1,
+    "action": 0,
+    "seconds": 0.38760159999947064
+  },
+  {
+    "value": -0.0,
+    "support": 1,
+    "distinct_rows": 1,
+    "action": 0,
+    "seconds": 0.2754895999969449
+  },
+  {
+    "value": -0.0,
+    "support": 1,
+    "distinct_rows": 1,
+    "action": 0,
+    "seconds": 0.27976309999939986
+  },
+  {
+    "value": -0.0,
+    "support": 1,
+    "distinct_rows": 4,
+    "action": 0,
+    "seconds": 0.27378849999513477
+  },
+  {
+    "value": -0.0,
+    "support": 1,
+    "distinct_rows": 3,
+    "action": 0,
+    "seconds": 0.26553550000244286
+  },
+  {
+    "value": -0.0,
+    "support": 1,
+    "distinct_rows": 5,
+    "action": 8,
+    "seconds": 0.2554779999918537
+  },
+  {
+    "value": 0.2906568944454193,
+    "support": 2,
+    "distinct_rows": 3,
+    "action": 11,
+    "seconds": 0.2391624000010779
+  },
+  {
+    "value": -0.43431350588798523,
+    "support": 1,
+    "distinct_rows": 7,
+    "action": 8,
+    "seconds": 0.22807420000026468
+  },
+  {
+    "value": -0.4503706097602844,
+    "support": 1,
+    "distinct_rows": 8,
+    "action": 8,
+    "seconds": 0.2288646999950288
+  },
+  {
+    "value": -0.46265941858291626,
+    "support": 1,
+    "distinct_rows": 3,
+    "action": 0,
+    "seconds": 0.2393997000035597
+  },
+  {
+    "value": -0.4719950258731842,
+    "support": 1,
+    "distinct_rows": 1,
+    "action": 0,
+    "seconds": 0.24887959999614395
+  },
+  {
+    "value": -0.4790474474430084,
+    "support": 1,
+    "distinct_rows": 1,
+    "action": 0,
+    "seconds": 0.25283529999433085
+  },
+  {
+    "value": -0.4841567873954773,
+    "support": 1,
+    "distinct_rows": 1,
+    "action": 0,
+    "seconds": 0.23220850000507198
+  },
+  {
+    "value": -1.0,
+    "support": 1,
+    "distinct_rows": 1,
+    "action": 0,
+    "seconds": 0.20352599999750964
+  },
+  {
+    "value": -1.0,
+    "support": 1,
+    "distinct_rows": 1,
+    "action": 0,
+    "seconds": 0.15939529999741353
+  },
+  {
+    "value": -1.0,
+    "support": 1,
+    "distinct_rows": 1,
+    "action": 0,
+    "seconds": 0.11437650000152644
+  },
+  {
+    "value": -1.0,
+    "support": 1,
+    "distinct_rows": 1,
+    "action": 0,
+    "seconds": 0.07116350000433158
+  },
+  {
+    "value": -1.0,
+    "support": 1,
+    "distinct_rows": 1,
+    "action": 0,
+    "seconds": 0.023506099998485297
+  }
+]
