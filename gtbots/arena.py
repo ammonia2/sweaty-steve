@@ -99,3 +99,69 @@ def play_match(env: GameEnv, bot1, bot2, target: int = 7, max_decisions: int = 2
         "seconds1": seconds[0], "seconds2": seconds[1],
         "ended_by": ended_by,
     }
+
+
+def play_matches(
+    make_a: BotFactory,
+    make_b: BotFactory,
+    matches: int = 8,
+    seed: int = 1,
+    target: int = 7,
+    max_decisions: int = 20000,
+    env_config: dict | None = None,
+) -> tuple[Result, list[dict]]:
+    """Play `matches` first-to-`target` games, one seed and fresh bots each.
+
+    `a` is P1 in even matches and P2 in odd ones, so both bots play both ends.
+    Returns the aggregate `Result` (from `a`'s side) and one record per match,
+    with the score and seconds already turned into `a`/`b` orientation.
+    """
+    if matches < 1:
+        raise ValueError("matches must be at least 1")
+    cfg = dict(env_config or {})
+    cfg["match"] = {**cfg.get("match", {}), "target": target}
+    res = Result()
+    records = []
+    for k in range(matches):
+        s = seed * 1_000_003 + k
+        a_on_p1 = k % 2 == 0
+        with GameEnv(num_envs=1, num_procs=1, seed=s, **cfg) as env:
+            first, second = (make_a, make_b) if a_on_p1 else (make_b, make_a)
+            bots = (first(env.layout, s), second(env.layout, s))
+            r = play_match(env, bots[0], bots[1], target, max_decisions)
+            bot_a = bots[0] if a_on_p1 else bots[1]
+
+        g1, g2 = r["goals1"], r["goals2"]
+        s1, s2 = r["seconds1"], r["seconds2"]
+        goals_a, goals_b = (g1, g2) if a_on_p1 else (g2, g1)
+        seconds_a, seconds_b = (s1, s2) if a_on_p1 else (s2, s1)
+        winner = "a" if goals_a > goals_b else ("b" if goals_b > goals_a else "draw")
+        side = "p1" if a_on_p1 else "p2"
+
+        res.matches += 1
+        res.a_goals += goals_a
+        res.b_goals += goals_b
+        res.ticks += r["ticks"]
+        res.seconds_a += seconds_a
+        res.seconds_b += seconds_b
+        res.per_side[side][1] += 1
+        if winner == "a":
+            res.a_wins += 1
+            res.per_side[side][0] += 1
+        elif winner == "b":
+            res.b_wins += 1
+        else:
+            res.draws += 1
+        if r["ended_by"] == "time":
+            res.cut_off += 1
+
+        records.append({
+            "match": k, "seed": s, "a_on_p1": int(a_on_p1),
+            "a_name": str(getattr(bot_a, "name", getattr(make_a, "__name__", "a"))),
+            "b_name": str(getattr(make_b, "__name__", "b")),
+            "winner": winner, "goals_a": goals_a, "goals_b": goals_b,
+            "decisions": r["decisions"], "ticks": r["ticks"],
+            "seconds_a": seconds_a, "seconds_b": seconds_b,
+            "ended_by": r["ended_by"],
+        })
+    return res, records

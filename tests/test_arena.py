@@ -4,7 +4,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from gtbots.arena import play_match
+from gtbots.arena import play_match, play_matches
 from gtbots.env import GameEnv
 
 
@@ -53,3 +53,31 @@ def test_time_cutoff_and_draw():
     assert r["ended_by"] == "time"
     assert r["winner"] == "draw"
     assert r["decisions"] == 5  # 10 ticks / 2 per decision
+
+
+def make_runner(layout, seed):
+    return Const(8)
+
+
+def make_idle(layout, seed):
+    return Const(0)
+
+
+def test_play_matches_alternates_ends_and_is_reproducible():
+    kw = dict(matches=4, seed=2, target=1, max_decisions=3000, env_config={"powerUps": False})
+    res, recs = play_matches(make_runner, make_idle, **kw)
+    assert res.matches == 4
+    assert [r["a_on_p1"] for r in recs] == [1, 0, 1, 0]
+    assert len({r["seed"] for r in recs}) == 4
+    assert res.per_side["p1"][1] == res.per_side["p2"][1] == 2
+    assert res.a_wins + res.b_wins + res.draws == 4
+    assert all(r["ended_by"] in {"target", "time", "decisions"} for r in recs)
+    _, again = play_matches(make_runner, make_idle, **kw)
+    assert [(r["seed"], r["winner"], r["goals_a"], r["goals_b"]) for r in recs] == [
+        (r["seed"], r["winner"], r["goals_a"], r["goals_b"]) for r in again
+    ]
+
+
+def test_play_matches_rejects_zero_matches():
+    with pytest.raises(ValueError):
+        play_matches(make_runner, make_idle, matches=0)
