@@ -1,4 +1,6 @@
-"""Checks for gtbots/bots/bayesian.py. No Node needed. Run: uv run pytest tests/test_bayesian.py"""
+"""Checks for gtbots/bots/bayesian.py. Run: uv run pytest tests/test_bayesian.py
+
+The belief and best-response checks need no Node; the mirror() checks do."""
 from __future__ import annotations
 
 import numpy as np
@@ -7,12 +9,13 @@ import pytest
 from gtbots.bots.bayesian import (
     TYPES,
     best_response,
+    mirror,
     predict,
     scripted_likelihood,
     uniform_prior,
     update_belief,
 )
-from gtbots.env import NUM_ACTIONS, ROOT
+from gtbots.env import NUM_ACTIONS, ROOT, GameEnv
 
 
 def test_uniform_prior():
@@ -111,3 +114,41 @@ def test_best_response_on_real_snapshots(n, scorer):
     q = np.random.default_rng(0).dirichlet(np.ones(NUM_ACTIONS))
     a, exp = best_response(M, q)
     assert np.all(exp <= exp[a] + 1e-12)
+
+
+# ---------------------------------------------------------------------------
+# mirror(): checked against the server's own two views. Needs Node.
+# ---------------------------------------------------------------------------
+
+
+def views(steps: int, seed: int, **config) -> tuple[np.ndarray, dict]:
+    """Both players' views over `steps` random decisions in 8 matches: [n, 2, 198]."""
+    with GameEnv(num_envs=8, num_procs=1, seed=seed, **config) as env:
+        rng = np.random.default_rng(seed)
+        seen = [env.reset()]
+        for _ in range(steps):
+            obs, *_ = env.step(rng.integers(0, NUM_ACTIONS, (env.num_envs, 2)))
+            seen.append(obs)
+        return np.concatenate(seen), env.layout
+
+
+def test_mirror_default_game():
+    """The game the experiments play: power-ups off, pitch 1."""
+    obs, layout = views(400, seed=3, powerUps=False)
+    assert np.allclose(mirror(obs[:, 0], layout), obs[:, 1], atol=1e-6)
+    assert np.allclose(mirror(obs[:, 1], layout), obs[:, 0], atol=1e-6)
+
+
+def test_mirror_with_power_ups_and_props():
+    """Power-ups on, every pitch: power-up drops and pitch props show up.
+    The streaker and bombs need a power-up to be collected, which random play
+    never does here; their rules follow the server code the same way."""
+    obs, layout = views(1500, seed=5, powerUps=True, pitches=list(range(1, 23)))
+    sec = layout["sections"]
+    starts = sorted(sec.values())
+    # The check only means something if these sections were ever non-empty.
+    for name in ("drops", "props"):
+        end = starts[starts.index(sec[name]) + 1]
+        assert obs[:, 0, sec[name]:end].any(), f"no {name} seen"
+    assert np.allclose(mirror(obs[:, 0], layout), obs[:, 1], atol=1e-6)
+    assert np.allclose(mirror(obs[:, 1], layout), obs[:, 0], atol=1e-6)

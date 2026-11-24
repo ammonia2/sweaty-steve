@@ -10,7 +10,8 @@ opponent it faces (PPO, Rusher or Camper), only the moves it makes. So it
      each type would do,  q = sum_t belief[t] * P(. | t),
   4. plays the action that does best against that mix, argmax(M @ q).
 
-This module holds the maths as small pure functions (no game needed).
+The types decide from THEIR OWN view, so the bot first turns its view around
+into the opponent's (`mirror`). The rest is small pure functions (no game needed).
 """
 from __future__ import annotations
 
@@ -20,6 +21,91 @@ from gtbots.env import NUM_ACTIONS
 
 # Opponent types the belief is over, in this order everywhere.
 TYPES = ("ppo", "rusher", "camper")
+
+# ---------------------------------------------------------------------------
+# The opponent's view
+# ---------------------------------------------------------------------------
+
+# Fields inside the slots the layout gives no names for, in the order the game
+# server writes them (writeObservation in game/envserver.cjs). Only the ones
+# that change under a mirror are listed.
+STREAKER_X, STREAKER_VX = 1, 3  # [present, x, y, vx]
+DROP_X = 1                      # [present, x, y, kind one-hot..., armed, blinking]
+BOMB_X = 1                      # [present, x, y, fall speed]
+PROP_PRESENT, PROP_X, PROP_Y, PROP_SIN = 0, 2, 3, 7  # [present, circle, x, y, half w, half h, cos, sin]
+
+
+def mirror(obs: np.ndarray, layout: dict) -> np.ndarray:
+    """The same moment seen from the other player's side.
+
+    Every view has its player attacking to the right, so turning it around:
+      - x positions, x speeds and spins change sign; y values stay,
+      - my block and the foe's block swap (so do my goal and theirs),
+      - flags about "me" flip: who touched the ball last, which side I'm on,
+      - the score: the difference changes sign, the two "needed" swap,
+      - pitch props are re-sorted by (x, y), as the server sorts them.
+    Exact: tests/test_bayesian.py checks it against the server's own views.
+    Works on [198] or [..., 198].
+    """
+    obs = np.asarray(obs)
+    if obs.ndim > 1:
+        return np.stack([mirror(o, layout) for o in obs.reshape(-1, obs.shape[-1])]).reshape(obs.shape)
+
+    sec, lengths = layout["sections"], layout["lengths"]
+    player, ball, match = layout["player"], layout["ball"], layout["match"]
+    out = obs.copy()
+
+    # Players: swap the two blocks, then flip the x-like fields of each.
+    n = lengths["player"]
+    me, foe = sec["me"], sec["foe"]
+    out[me:me + n], out[foe:foe + n] = obs[foe:foe + n], obs[me:me + n]
+    for start in (me, foe):
+        for name in ("x", "vx", "legDx", "legSpin"):
+            out[start + player[name]] *= -1
+
+    # Ball.
+    b = sec["ball"]
+    for name in ("x", "vx", "spin"):
+        out[b + ball[name]] *= -1
+    out[b + ball["mineLast"]] = 1 - obs[b + ball["mineLast"]]
+
+    # Goal sizes: [my goal one-hot, their goal one-hot] -> swap the halves.
+    g, half = sec["goals"], (sec["streaker"] - sec["goals"]) // 2
+    out[g:g + half], out[g + half:g + 2 * half] = obs[g + half:g + 2 * half], obs[g:g + half]
+
+    # Streaker (zeros when there is none, and -0 == 0).
+    s = sec["streaker"]
+    out[s + STREAKER_X] *= -1
+    out[s + STREAKER_VX] *= -1
+
+    # Power-up drops and bombs: only x flips; their slot order doesn't depend on the side.
+    for name, field in (("drops", DROP_X), ("bombs", BOMB_X)):
+        size = lengths[name[:-1]]
+        for slot in range(sec[name], _end(sec, name), size):
+            out[slot + field] *= -1
+
+    # Props: flip x and the rotation's sin, then re-sort the present ones by (x, y).
+    size, p0 = lengths["prop"], sec["props"]
+    slots = out[p0:_end(sec, "props")].reshape(-1, size)  # a view into `out`
+    slots[:, PROP_X] *= -1
+    slots[:, PROP_SIN] *= -1
+    present = slots[slots[:, PROP_PRESENT] > 0]
+    order = np.lexsort((present[:, PROP_Y], present[:, PROP_X]))
+    slots[: len(present)] = present[order]
+
+    # Match.
+    m = sec["match"]
+    out[m + match["scoreDiff"]] *= -1
+    out[m + match["myNeeded"]], out[m + match["theirNeeded"]] = (
+        obs[m + match["theirNeeded"]], obs[m + match["myNeeded"]])
+    out[m + match["side"]] = 1 - obs[m + match["side"]]
+    return out
+
+
+def _end(sec: dict, name: str) -> int:
+    """Where section `name` ends: where the next section starts."""
+    starts = sorted(sec.values())
+    return starts[starts.index(sec[name]) + 1]
 
 
 def uniform_prior(n: int = len(TYPES)) -> np.ndarray:
