@@ -11,15 +11,23 @@ opponent it faces (PPO, Rusher or Camper), only the moves it makes. So it
   4. plays the action that does best against that mix, argmax(M @ q).
 
 The types decide from THEIR OWN view, so the bot first turns its view around
-into the opponent's (`mirror`). The rest is small pure functions (no game needed).
+into the opponent's (`mirror`). The maths is small pure functions (no game
+needed); `BayesianBot` at the bottom puts it together.
+
+Fair comparison with the Nash bot: same payoff matrix (`payoff_matrix`, same
+score, ticks and follow) and same commitment. Only the choice differs: Nash
+plays the safe equilibrium mix, this bot the best reply to its prediction.
 """
 from __future__ import annotations
+
+import time
 
 import numpy as np
 
 from gtbots.bots.ppo import PpoBot
 from gtbots.bots.scripted import Camper, Rusher
-from gtbots.env import NUM_ACTIONS
+from gtbots.env import NUM_ACTIONS, Fields, Seat
+from gtbots.evaluator import Score, payoff_matrix
 
 # Opponent types the belief is over, in this order everywhere.
 TYPES = ("ppo", "rusher", "camper")
@@ -186,3 +194,123 @@ def best_response(M: np.ndarray, q: np.ndarray) -> tuple[int, np.ndarray]:
     """
     expected = np.asarray(M, dtype=np.float64) @ np.asarray(q, dtype=np.float64)
     return int(np.argmax(expected)), expected
+
+
+# ---------------------------------------------------------------------------
+# The bot
+# ---------------------------------------------------------------------------
+
+
+class BayesianBot:
+    name = "bayes"
+
+    def __init__(
+        self,
+        score: Score,
+        layout: dict,
+        ticks: int = 30,
+        follow: str = "hold",
+        commit: int = 3,
+        seed: int = 0,
+        eps: float = 0.05,
+        prior: np.ndarray | None = None,
+        ppo=None,
+    ):
+        """
+        score, layout, ticks, follow, commit, seed: as in NashBot, so the two
+                 bots see the same game. seed breaks ties between equally good
+                 actions (rows of M are often identical, e.g. with/without jump).
+        eps:     smoothing for the scripted types (see scripted_likelihood)
+        prior:   starting belief over TYPES; uniform if None
+        ppo:     the PPO actor to model as the PPO type; the default if None
+        """
+        if commit < 1:
+            raise ValueError("commit must be at least 1 decision")
+        self.score = score
+        self.layout = layout
+        self.ticks = ticks
+        self.follow = follow
+        self.commit = commit
+        self.f = Fields(layout)
+        self.rng = np.random.default_rng(seed)
+        self.types = OpponentTypes(layout, eps, ppo)
+        self.prior = uniform_prior() if prior is None else np.asarray(prior, dtype=np.float64)
+        if self.prior.shape != (len(TYPES),) or not np.isclose(self.prior.sum(), 1):
+            raise ValueError(f"prior must be {len(TYPES)} probabilities summing to 1, got {prior}")
+        scorer = type(score).__name__.removesuffix("Score").lower()
+        self.name = f"bayes-{scorer}-c{commit}"
+        # One entry per plan, kept across matches like NashBot's (see _record).
+        self.log: list[dict] = []
+        self.match = -1  # counts matches played, from 0 (see act)
+        self.reset()
+
+    def observe(self, opponent_action: int | None) -> None:
+        """Bayes' rule on the opponent's last move.
+
+        The opponent chose that move from the view saved in the previous `act`,
+        so the likelihoods come from that view, not the current one.
+        """
+        if opponent_action is None or self.last_view is None:
+            return  # first decision of a match: nothing seen yet
+        likelihoods = self.types.probs(self.last_view)[:, opponent_action]
+        self.belief = update_belief(self.belief, likelihoods)
+
+    def act(self, seat: Seat, obs: np.ndarray) -> int:
+        """One decision: the held action, or a fresh plan. The opponent's view
+        is saved every decision, so the belief updates every decision."""
+        if self.decision == 0:
+            self.match += 1  # first decision of a new match
+        self.decision += 1
+        view = mirror(obs, self.layout)
+        self.last_view = view
+
+        # A goal: back at kick-off, the held action was for a position that's gone.
+        if self._kickoff(obs):
+            self.left = 0
+        if self.left > 0:
+            self.left -= 1
+            return self.held
+
+        self.held = self._plan(seat, view)
+        self.left = self.commit - 1
+        return self.held
+
+    def _plan(self, seat: Seat, view: np.ndarray) -> int:
+        """Predict the opponent's mix, build the game, best-respond."""
+        start = time.perf_counter()
+        q = predict(self.belief, self.types.probs(view))
+        M = payoff_matrix(seat, self.score, self.ticks, self.follow)
+        _, expected = best_response(M, q)
+        # Ties: every action within a hair of the best, picked at random.
+        best = np.flatnonzero(expected >= expected.max() - 1e-12)
+        action = int(self.rng.choice(best))
+        self._record(q, expected, action, time.perf_counter() - start)
+        return action
+
+    def _kickoff(self, obs: np.ndarray) -> bool:
+        """True when the score changed since the last call (a goal, so a kick-off)."""
+        score = (float(self.f.match(obs, "myNeeded")), float(self.f.match(obs, "theirNeeded")))
+        changed = self.last_score is not None and score != self.last_score
+        self.last_score = score
+        return changed
+
+    def _record(self, q: np.ndarray, expected: np.ndarray, action: int, seconds: float) -> None:
+        """Keep what the report needs from each plan (belief-over-time plot)."""
+        self.log.append({
+            "match": self.match,
+            "decision": self.decision,  # within this match, from 1
+            "belief": dict(zip(TYPES, self.belief.tolist())),
+            "q": q.tolist(),  # predicted opponent mix
+            "expected": expected.tolist(),  # (M @ q), one per action
+            "action": action,
+            "seconds": seconds,
+        })
+
+    def reset(self) -> None:
+        """New match: back to the prior, forget the view, the commitment and the score."""
+        self.decision = 0
+        self.belief = self.prior.copy()
+        self.last_view: np.ndarray | None = None
+        self.held: int = 0
+        self.left: int = 0
+        self.last_score: tuple[float, float] | None = None

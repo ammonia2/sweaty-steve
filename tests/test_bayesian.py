@@ -8,6 +8,7 @@ import pytest
 
 from gtbots.bots.bayesian import (
     TYPES,
+    BayesianBot,
     OpponentTypes,
     best_response,
     mirror,
@@ -18,7 +19,8 @@ from gtbots.bots.bayesian import (
 )
 from gtbots.bots.ppo import PpoBot
 from gtbots.bots.scripted import Camper, Rusher
-from gtbots.env import NUM_ACTIONS, ROOT, GameEnv
+from gtbots.env import NUM_ACTIONS, ROOT, GameEnv, Seat
+from gtbots.scoring.heuristic import HeuristicScore
 
 
 def test_uniform_prior():
@@ -191,3 +193,80 @@ def test_types_explain_a_real_opponent_through_mirror(Opp, t):
             P = types.probs(mirror(obs[0, 0], env.layout))
             assert P[t, p2_action] == pytest.approx(0.95)
             obs, *_ = env.step([[rng.integers(NUM_ACTIONS), p2_action]])
+
+
+# ---------------------------------------------------------------------------
+# BayesianBot. Needs Node.
+# ---------------------------------------------------------------------------
+
+
+def run(bot, opponent, decisions: int, seed: int = 17) -> list[int]:
+    """`bot` as P1 against `opponent` as P2, calling observe like arena.play_match.
+    Returns the opponent's actions."""
+    with GameEnv(num_envs=1, num_procs=1, seed=seed, powerUps=False) as env:
+        bot.reset()
+        obs, prev, theirs = env.reset(), None, []
+        for _ in range(decisions):
+            bot.observe(prev)
+            a = bot.act(Seat(env, 0, 0), obs[0, 0])
+            assert 0 <= a < NUM_ACTIONS
+            b = opponent.act(None, obs[0, 1])
+            obs, *_ = env.step([[a, b]])
+            prev = b
+            theirs.append(b)
+    return theirs
+
+
+@pytest.fixture(scope="module")
+def layout():
+    with GameEnv(num_envs=1, num_procs=1) as env:
+        return env.layout
+
+
+def test_bot_name_and_settings(layout):
+    bot = BayesianBot(HeuristicScore(layout), layout)
+    assert bot.name == "bayes-heuristic-c3"
+    assert bot.ticks == 30 and bot.follow == "hold" and bot.commit == 3
+    assert np.allclose(bot.belief, 1 / 3)
+    with pytest.raises(ValueError):
+        BayesianBot(HeuristicScore(layout), layout, prior=[0.5, 0.5, 0.5])
+    with pytest.raises(ValueError):
+        BayesianBot(HeuristicScore(layout), layout, commit=0)
+
+
+def test_bot_plans_every_commit_and_logs(layout):
+    """30 decisions with commit=3, no goal that early: 10 plans, each logged
+    with a normalised belief, a mix q and 12 expected payoffs."""
+    bot = BayesianBot(HeuristicScore(layout), layout, ticks=10)
+    run(bot, Rusher(layout), 30)
+    assert len(bot.log) == 10
+    assert [e["decision"] for e in bot.log] == list(range(1, 31, 3))
+    for e in bot.log:
+        assert sum(e["belief"].values()) == pytest.approx(1)
+        assert sum(e["q"]) == pytest.approx(1)
+        assert len(e["expected"]) == NUM_ACTIONS
+        assert e["expected"][e["action"]] == pytest.approx(max(e["expected"]))
+
+
+def test_bot_belief_matches_hand_update(layout):
+    """The bot's belief after a match = Bayes' rule applied by hand to the
+    same opponent moves on the same (mirrored) views."""
+    bot = BayesianBot(HeuristicScore(layout), layout, ticks=10)
+    types = OpponentTypes(layout)
+    seen = []
+    act = bot.act
+    bot.act = lambda seat, obs: (seen.append(obs.copy()), act(seat, obs))[1]
+    theirs = run(bot, Camper(layout), 12)
+    belief = uniform_prior()
+    for obs, a in zip(seen[:-1], theirs[:-1]):
+        belief = update_belief(belief, types.probs(mirror(obs, layout))[:, a])
+    assert np.allclose(bot.belief, belief)
+
+
+def test_bot_reset_starts_a_new_match(layout):
+    bot = BayesianBot(HeuristicScore(layout), layout, ticks=10)
+    run(bot, Rusher(layout), 6)
+    assert not np.allclose(bot.belief, 1 / 3)
+    run(bot, Rusher(layout), 3)
+    assert {e["match"] for e in bot.log} == {0, 1}
+    assert bot.decision == 3
