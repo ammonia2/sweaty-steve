@@ -8,6 +8,7 @@ import pytest
 
 from gtbots.bots.bayesian import (
     TYPES,
+    OpponentTypes,
     best_response,
     mirror,
     predict,
@@ -15,6 +16,8 @@ from gtbots.bots.bayesian import (
     uniform_prior,
     update_belief,
 )
+from gtbots.bots.ppo import PpoBot
+from gtbots.bots.scripted import Camper, Rusher
 from gtbots.env import NUM_ACTIONS, ROOT, GameEnv
 
 
@@ -152,3 +155,39 @@ def test_mirror_with_power_ups_and_props():
         assert obs[:, 0, sec[name]:end].any(), f"no {name} seen"
     assert np.allclose(mirror(obs[:, 0], layout), obs[:, 1], atol=1e-6)
     assert np.allclose(mirror(obs[:, 1], layout), obs[:, 0], atol=1e-6)
+
+
+# ---------------------------------------------------------------------------
+# OpponentTypes: P(. | type, view). Needs Node for real views.
+# ---------------------------------------------------------------------------
+
+
+def test_type_probs_rows():
+    """Each row is a distribution: PPO's exact softmax, the scripted types
+    0.95 on the action their bot would pick."""
+    obs, layout = views(50, seed=11, powerUps=False)
+    types = OpponentTypes(layout)
+    ppo, rusher, camper = PpoBot(), Rusher(layout), Camper(layout)
+    for view in obs[::7, 1]:
+        P = types.probs(view)
+        assert P.shape == (len(TYPES), NUM_ACTIONS)
+        assert np.allclose(P.sum(axis=1), 1)
+        assert np.allclose(P[0], ppo.probabilities(view))
+        assert P[1, rusher.act(None, view)] == pytest.approx(0.95)
+        assert P[2, camper.act(None, view)] == pytest.approx(0.95)
+
+
+@pytest.mark.parametrize("Opp, t", [(Rusher, 1), (Camper, 2)])
+def test_types_explain_a_real_opponent_through_mirror(Opp, t):
+    """The whole chain on a live match: P2 is a scripted bot. From P1's view
+    alone, mirror() + OpponentTypes gives P2's real move probability 0.95
+    under its own type, every decision."""
+    with GameEnv(num_envs=1, num_procs=1, seed=13, powerUps=False) as env:
+        types, opp = OpponentTypes(env.layout), Opp(env.layout)
+        rng = np.random.default_rng(13)
+        obs = env.reset()
+        for _ in range(150):
+            p2_action = opp.act(None, obs[0, 1])
+            P = types.probs(mirror(obs[0, 0], env.layout))
+            assert P[t, p2_action] == pytest.approx(0.95)
+            obs, *_ = env.step([[rng.integers(NUM_ACTIONS), p2_action]])

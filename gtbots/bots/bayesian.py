@@ -17,6 +17,8 @@ from __future__ import annotations
 
 import numpy as np
 
+from gtbots.bots.ppo import PpoBot
+from gtbots.bots.scripted import Camper, Rusher
 from gtbots.env import NUM_ACTIONS
 
 # Opponent types the belief is over, in this order everywhere.
@@ -125,6 +127,34 @@ def scripted_likelihood(action: int, eps: float = 0.05) -> np.ndarray:
     p = np.full(NUM_ACTIONS, eps / (NUM_ACTIONS - 1))
     p[action] = 1.0 - eps
     return p
+
+
+class OpponentTypes:
+    """What each opponent type would do from a given view: P(. | type, view).
+
+    The view must be the OPPONENT's (see `mirror`): each type decides from its
+    own side, attacking to the right.
+    """
+
+    def __init__(self, layout: dict, eps: float = 0.05, ppo: PpoBot | None = None):
+        """
+        layout: env.layout, for the scripted types to read the view by name
+        eps:    smoothing for the scripted types (see scripted_likelihood)
+        ppo:    the PPO actor to model; the default actor (stage2) if None
+        """
+        self.eps = eps
+        self.ppo = ppo if ppo is not None else PpoBot()
+        self.rusher = Rusher(layout)
+        self.camper = Camper(layout)
+
+    def probs(self, view: np.ndarray) -> np.ndarray:
+        """[types, 12]: row t is P(. | type t), rows in the order of TYPES."""
+        # The scripted bots never use their seat, so None is fine.
+        return np.stack([
+            self.ppo.probabilities(view).astype(np.float64),
+            scripted_likelihood(self.rusher.act(None, view), self.eps),
+            scripted_likelihood(self.camper.act(None, view), self.eps),
+        ])
 
 
 def update_belief(belief: np.ndarray, likelihoods: np.ndarray) -> np.ndarray:
