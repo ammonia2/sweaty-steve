@@ -165,16 +165,22 @@ class OpponentTypes:
         ])
 
 
-def update_belief(belief: np.ndarray, likelihoods: np.ndarray) -> np.ndarray:
+def update_belief(belief: np.ndarray, likelihoods: np.ndarray, floor: float = 0.0) -> np.ndarray:
     """Bayes' rule: posterior[t] proportional to belief[t] * likelihoods[t].
 
     likelihoods[t] = P(the move the opponent actually made | type t).
+
+    floor: keep every type at (about) this belief or more. Without it a type
+    can reach exactly 0 and never come back: PPO's softmax can round a move's
+    probability to 0, and over a long match repeated products underflow.
+    0 is the plain Bayes' rule.
     """
     post = np.asarray(belief, dtype=np.float64) * np.asarray(likelihoods, dtype=np.float64)
     total = post.sum()
     if not total > 0:
         raise ValueError(f"every type gives the move probability 0: {likelihoods}")
-    return post / total
+    post = np.maximum(post / total, floor)
+    return post / post.sum()
 
 
 def predict(belief: np.ndarray, type_probs: np.ndarray) -> np.ndarray:
@@ -213,6 +219,7 @@ class BayesianBot:
         commit: int = 3,
         seed: int = 0,
         eps: float = 0.05,
+        floor: float = 1e-6,
         prior: np.ndarray | None = None,
         ppo=None,
     ):
@@ -221,6 +228,8 @@ class BayesianBot:
                  bots see the same game. seed breaks ties between equally good
                  actions (rows of M are often identical, e.g. with/without jump).
         eps:     smoothing for the scripted types (see scripted_likelihood)
+        floor:   no type's belief drops below about this (see update_belief),
+                 so a wrongly dismissed type can still come back
         prior:   starting belief over TYPES; uniform if None
         ppo:     the PPO actor to model as the PPO type; the default if None
         """
@@ -234,6 +243,7 @@ class BayesianBot:
         self.f = Fields(layout)
         self.rng = np.random.default_rng(seed)
         self.types = OpponentTypes(layout, eps, ppo)
+        self.floor = floor
         self.prior = uniform_prior() if prior is None else np.asarray(prior, dtype=np.float64)
         if self.prior.shape != (len(TYPES),) or not np.isclose(self.prior.sum(), 1):
             raise ValueError(f"prior must be {len(TYPES)} probabilities summing to 1, got {prior}")
@@ -253,7 +263,7 @@ class BayesianBot:
         if opponent_action is None or self.last_view is None:
             return  # first decision of a match: nothing seen yet
         likelihoods = self.types.probs(self.last_view)[:, opponent_action]
-        self.belief = update_belief(self.belief, likelihoods)
+        self.belief = update_belief(self.belief, likelihoods, self.floor)
 
     def act(self, seat: Seat, obs: np.ndarray) -> int:
         """One decision: the held action, or a fresh plan. The opponent's view

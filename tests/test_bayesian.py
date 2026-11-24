@@ -78,6 +78,30 @@ def test_type_comes_back_after_a_surprise():
     assert np.argmax(belief) == 0
 
 
+def test_floor_keeps_a_type_alive():
+    """A move with probability exactly 0 under type 0 (PPO's softmax can round
+    to that): plain Bayes sets it to 0 for good, the floor keeps it and lets
+    it win back the lead once the evidence turns."""
+    assert update_belief(uniform_prior(), [0.0, 0.5, 0.5])[0] == 0
+    belief = update_belief(uniform_prior(), [0.0, 0.5, 0.5], floor=1e-6)
+    assert belief[0] == pytest.approx(1e-6, rel=1e-3) and belief.sum() == pytest.approx(1)
+    for _ in range(10):
+        belief = update_belief(belief, [0.9, 0.01, 0.01], floor=1e-6)
+    assert np.argmax(belief) == 0
+
+
+def test_floor_stops_underflow():
+    """500 moves that type 2 explains badly: without a floor its belief
+    underflows to 0.0, with one it stays at the floor."""
+    lik = [0.5, 0.5, 0.05 / 11]
+    plain, floored = uniform_prior(), uniform_prior()
+    for _ in range(500):
+        plain = update_belief(plain, lik)
+        floored = update_belief(floored, lik, floor=1e-6)
+    assert plain[2] == 0.0
+    assert floored[2] == pytest.approx(1e-6, rel=1e-3)
+
+
 def test_update_rejects_all_zero():
     with pytest.raises(ValueError):
         update_belief(uniform_prior(), [0.0, 0.0, 0.0])
@@ -228,6 +252,7 @@ def test_bot_name_and_settings(layout):
     assert bot.name == "bayes-heuristic-c3"
     assert bot.ticks == 30 and bot.follow == "hold" and bot.commit == 3
     assert np.allclose(bot.belief, 1 / 3)
+    assert bot.floor == 1e-6
     with pytest.raises(ValueError):
         BayesianBot(HeuristicScore(layout), layout, prior=[0.5, 0.5, 0.5])
     with pytest.raises(ValueError):
@@ -251,7 +276,7 @@ def test_bot_plans_every_commit_and_logs(layout):
 def test_bot_belief_matches_hand_update(layout):
     """The bot's belief after a match = Bayes' rule applied by hand to the
     same opponent moves on the same (mirrored) views."""
-    bot = BayesianBot(HeuristicScore(layout), layout, ticks=10)
+    bot = BayesianBot(HeuristicScore(layout), layout, ticks=10, floor=0.0)
     types = OpponentTypes(layout)
     seen = []
     act = bot.act
