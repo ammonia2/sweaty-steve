@@ -10,9 +10,9 @@ the other half, so the matrix is antisymmetric (a zero-sum game between the
 bots; the diagonal is 0 by definition). Feed it straight to
 ``gtbots.replicator.simulate``.
 
-A match is played to the game's own end (first to ``target`` goals) in its own
-env, one match per process (``num_envs == num_procs == 1``), and ``workers``
-such matches run at once. Seeds are derived from ``seed``, the pair and the
+A match is played to the game's own end (first to ``target`` goals; see
+``gtbots.arena.play_match``) in its own env, one match per process
+(``num_envs == num_procs == 1``), and ``workers`` such matches run at once. Seeds are derived from ``seed``, the pair and the
 match number, so a run is reproducible from its config.
 
 Output (``save``): ``<out>/<tag>_matrix.csv`` and ``<tag>_matches.csv``.
@@ -22,59 +22,19 @@ from __future__ import annotations
 import csv
 import itertools
 import multiprocessing as mp
-import time
 from pathlib import Path
 from typing import Callable, Sequence
 
 import numpy as np
 
-from gtbots.env import GameEnv, Seat
+from gtbots.arena import play_match  # one whole match; also feeds `observe` to bots that want it
+from gtbots.env import GameEnv
 
 Entry = tuple[str, Callable[[dict, int], object]]
 
 # Set before the worker pool forks, so workers inherit the (possibly
 # unpicklable) bot factories instead of receiving them as arguments.
 _ENTRIES: Sequence[Entry] = ()
-
-
-def play_match(env: GameEnv, bot1, bot2, target: int = 7, max_decisions: int = 20000) -> dict:
-    """Play one whole match in env 0: ``bot1`` as P1, ``bot2`` as P2.
-
-    Ends when a side reaches ``target`` goals, when the env cuts the episode
-    off (time limit), or after ``max_decisions`` decisions (a safety stop).
-    Returns goals, decisions, ticks, and seconds of compute for each bot.
-    """
-    seats = (Seat(env, 0, 0), Seat(env, 0, 1))
-    bots = (bot1, bot2)
-    for b in bots:
-        if hasattr(b, "reset"):
-            b.reset()
-    obs = env.reset()
-    goals = [0, 0]
-    seconds = [0.0, 0.0]
-    decisions = 0
-    ended_by = "decisions"
-    while decisions < max_decisions:
-        actions = np.zeros((1, 2), dtype=np.uint8)
-        for k in (0, 1):
-            t0 = time.perf_counter()
-            actions[0, k] = bots[k].act(seats[k], obs[0, k])
-            seconds[k] += time.perf_counter() - t0
-        obs, reward, terminated, truncated, _ = env.step(actions)
-        decisions += 1
-        for k in (0, 1):
-            goals[k] += int(reward[0, k] > 0)
-        if max(goals) >= target:
-            ended_by = "target"
-            break
-        if truncated[0]:
-            ended_by = "time"
-            break
-    return {
-        "goals1": goals[0], "goals2": goals[1], "decisions": decisions,
-        "ticks": decisions * int(env.config.get("actionRepeat", 2)),
-        "seconds1": seconds[0], "seconds2": seconds[1], "ended_by": ended_by,
-    }
 
 
 def _job(job: tuple) -> dict:
@@ -116,8 +76,12 @@ def round_robin(
     target: int = 7,
     max_decisions: int = 20000,
     env_config: dict | None = None,
+    pairs: Sequence[tuple[int, int]] | None = None,
 ):
     """Every pair of entries plays ``matches_per_pair`` matches, ends swapped each time.
+
+    ``pairs`` limits which ``(i, j)`` index pairs play (default: all); the
+    other cells of ``A`` stay 0.
 
     Returns ``(names, A, matches)``: names in entry order, the payoff matrix,
     and one dict per match (see ``save``). ``env_config`` is passed to
@@ -132,7 +96,7 @@ def round_robin(
     cfg = {**(env_config or {})}
     cfg["match"] = {**cfg.get("match", {}), "target": target}
     jobs = []
-    for i, j in itertools.combinations(range(len(names)), 2):
+    for i, j in (pairs if pairs is not None else itertools.combinations(range(len(names)), 2)):
         for k in range(matches_per_pair):
             s = seed * 1_000_003 + (i * len(names) + j) * 1009 + k
             jobs.append((i, j, k, k % 2 == 0, s, cfg, target, max_decisions))
