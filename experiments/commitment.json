@@ -1,0 +1,14 @@
+{
+  "seed": 1,
+  "hold_ticks": [6, 14],
+  "scorers": ["heuristic", "critic"],
+  "opponents": ["ppo", "baseline"],
+  "solver": "lp",
+  "lookahead_ticks": 30,
+  "follow": "hold",
+  "target": 7,
+  "matches_per_pair": 20,
+  "workers": 14,
+  "max_decisions": 20000,
+  "out": "results/commitment"
+}

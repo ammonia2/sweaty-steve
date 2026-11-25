@@ -1,0 +1,15 @@
+{
+  "seed": 1,
+  "bots": ["nash:heuristic:6", "nash:critic:6", "bayes:critic:6", "ppo", "baseline", "rusher", "camper"],
+  "solver": "lp",
+  "lookahead_ticks": 30,
+  "follow": "hold",
+  "target": 7,
+  "matches_per_pair": 20,
+  "workers": 14,
+  "max_decisions": 20000,
+  "replicator_rule": "euler",
+  "replicator_dt": 0.01,
+  "replicator_steps": 10000,
+  "out": "results/tournament"
+}
