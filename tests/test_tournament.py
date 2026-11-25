@@ -79,3 +79,16 @@ def test_match_ends_at_target_with_goals():
     assert all(m["ended_by"] == "target" for m in ms)
     assert all(max(m["goals_i"], m["goals_j"]) == 2 for m in ms)
     assert A[0, 1] != 0
+
+
+def test_checkpoint_resumes_without_replaying(tmp_path):
+    ck = tmp_path / "c.jsonl"
+    kw = dict(matches_per_pair=2, seed=3, target=1, max_decisions=300, checkpoint=ck)
+    _, A, ms = tournament.round_robin(entries(), **kw)
+    lines = ck.read_text().splitlines()
+    assert len(lines) == len(ms) == 6
+    # Pretend the run died after 4 matches, then resume.
+    ck.write_text("\n".join(lines[:4]) + "\n")
+    _, A2, ms2 = tournament.round_robin(entries(), workers=2, **kw)
+    assert np.array_equal(A, A2) and [m["seed"] for m in ms] == [m["seed"] for m in ms2]
+    assert len(ck.read_text().splitlines()) == 6  # only the 2 missing ones were played

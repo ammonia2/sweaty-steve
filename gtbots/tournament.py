@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import csv
 import itertools
+import json
 import multiprocessing as mp
 from pathlib import Path
 from typing import Callable, Sequence
@@ -77,11 +78,17 @@ def round_robin(
     max_decisions: int = 20000,
     env_config: dict | None = None,
     pairs: Sequence[tuple[int, int]] | None = None,
+    checkpoint: str | Path | None = None,
 ):
     """Every pair of entries plays ``matches_per_pair`` matches, ends swapped each time.
 
     ``pairs`` limits which ``(i, j)`` index pairs play (default: all); the
     other cells of ``A`` stay 0.
+
+    ``checkpoint`` is a JSON-lines file: every finished match is appended to
+    it, and on a later call with the same settings the matches already in it
+    are not played again, so an interrupted run resumes where it stopped.
+    (Delete the file to start over, or after changing bots or settings.)
 
     Returns ``(names, A, matches)``: names in entry order, the payoff matrix,
     and one dict per match (see ``save``). ``env_config`` is passed to
@@ -100,11 +107,39 @@ def round_robin(
         for k in range(matches_per_pair):
             s = seed * 1_000_003 + (i * len(names) + j) * 1009 + k
             jobs.append((i, j, k, k % 2 == 0, s, cfg, target, max_decisions))
-    if workers > 1:
-        with mp.get_context("fork").Pool(workers) as pool:
-            matches = pool.map(_job, jobs, chunksize=1)
-    else:
-        matches = [_job(job) for job in jobs]
+    # Matches already finished in an earlier run of this same job list.
+    done: dict[tuple, dict] = {}
+    ckpt = Path(checkpoint) if checkpoint else None
+    if ckpt and ckpt.exists():
+        for line in ckpt.read_text().splitlines():
+            if line.strip():
+                r = json.loads(line)
+                done[(r["i"], r["j"], r["match"], r["seed"])] = r
+    todo = [job for job in jobs if (job[0], job[1], job[2], job[4]) not in done]
+    sink = None
+    if ckpt:
+        ckpt.parent.mkdir(parents=True, exist_ok=True)
+        sink = open(ckpt, "a")
+
+    def record(r: dict) -> dict:
+        done[(r["i"], r["j"], r["match"], r["seed"])] = r
+        if sink:
+            sink.write(json.dumps(r) + "\n")
+            sink.flush()
+        return r
+
+    try:
+        if workers > 1 and todo:
+            with mp.get_context("fork").Pool(workers) as pool:
+                for r in pool.imap_unordered(_job, todo, chunksize=1):
+                    record(r)
+        else:
+            for job in todo:
+                record(_job(job))
+    finally:
+        if sink:
+            sink.close()
+    matches = [done[(job[0], job[1], job[2], job[4])] for job in jobs]
     return names, matrix_from_matches(len(names), matches), matches
 
 

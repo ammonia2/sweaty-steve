@@ -85,6 +85,7 @@ def run(cfg: dict, out: str | Path | None = None, entry=make_entry) -> list[dict
                 max_decisions=cfg["max_decisions"],
                 env_config={"replayDir": str(out / "replays" / tag)},
                 pairs=[(0, k) for k in range(1, len(entries))],
+                checkpoint=out / f"{tag}.ckpt.jsonl",
             )
             tournament.save(names, A, matches, out, tag)
             for k, opp in enumerate(cfg["opponents"], start=1):

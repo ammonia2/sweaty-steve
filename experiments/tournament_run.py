@@ -34,6 +34,7 @@ def run(cfg: dict, out: str | Path | None = None, entry=make_entry, figure: str 
         target=cfg["target"],
         max_decisions=cfg["max_decisions"],
         env_config={"replayDir": str(out / "replays")},
+        checkpoint=out / "tournament.ckpt.jsonl",
     )
     tournament.save(names, A, matches, out, "tournament")
     traj = replicator.simulate(A, steps=cfg["replicator_steps"], dt=cfg["replicator_dt"], rule=cfg["replicator_rule"])
